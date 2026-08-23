@@ -1,100 +1,164 @@
+/* AUTHENTICATION */
+
 .auth-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #f5f7fb;
+  padding: 20px;
 }
 
-.auth-card {
-  width: 400px;
+.auth-card,
+.vehicle-form-card {
+  width: 100%;
+  max-width: 450px;
   background: white;
-  padding: 35px;
-  border-radius: 15px;
   border: 1px solid #e7ebf2;
+  border-radius: 16px;
+  padding: 35px;
   box-shadow: 0 15px 40px rgba(15, 23, 42, 0.08);
   text-align: center;
 }
 
+.auth-card .logo-icon {
+  margin: 0 auto 15px;
+}
+
 .auth-card h1 {
-  margin-top: 12px;
+  font-size: 26px;
+  margin-bottom: 5px;
+}
+
+.auth-card > p {
+  color: #718096;
+  font-size: 13px;
+  margin-bottom: 25px;
 }
 
 .auth-card h2 {
-  margin: 25px 0 15px;
-}
-
-.auth-card p {
-  color: #718096;
-  font-size: 13px;
+  font-size: 20px;
+  margin-bottom: 20px;
 }
 
 .auth-card form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .auth-card input,
-.auth-card select {
-  height: 45px;
-  padding: 0 13px;
+.vehicle-form input,
+.vehicle-form select {
+  width: 100%;
+  height: 44px;
   border: 1px solid #dce2ea;
   border-radius: 8px;
+  padding: 0 13px;
   outline: none;
+  font-size: 13px;
 }
 
 .auth-card input:focus,
-.auth-card select:focus {
+.vehicle-form input:focus,
+.vehicle-form select:focus {
   border-color: #2563eb;
 }
 
-.auth-card .outline-btn {
-  margin-top: 15px;
-  width: 100%;
+.primary-btn {
+  border: none;
+  background: #2563eb;
+  color: white;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
+.primary-btn:hover {
+  background: #1d4ed8;
 }
 
-.modal-content {
-  width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
+.secondary-btn {
   background: white;
-  border-radius: 15px;
-  padding: 28px;
+  border: 1px solid #dce2ea;
+  padding: 12px 18px;
+  border-radius: 8px;
+  color: #4a5568;
+  cursor: pointer;
 }
 
-.modal-content h2 {
-  margin-bottom: 20px;
+.link-btn {
+  border: none;
+  background: none;
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.modal-content form {
+.message {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  padding: 10px 14px;
+  border-radius: 7px;
+  margin-bottom: 18px;
+  font-size: 13px;
+}
+
+/* VEHICLE FORM */
+
+.vehicle-form-card {
+  max-width: 700px;
+  text-align: left;
+}
+
+.vehicle-form-card h1 {
+  margin-bottom: 25px;
+}
+
+.vehicle-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 14px;
 }
 
-.modal-content input,
-.modal-content select {
-  height: 42px;
-  padding: 0 10px;
-  border: 1px solid #dce2ea;
-  border-radius: 7px;
-}
-
-.modal-actions {
+.vehicle-form .form-actions {
   grid-column: 1 / -1;
   display: flex;
-  justify-content: flex-end;
   gap: 10px;
   margin-top: 10px;
+}
+
+.vehicle-form .form-actions button {
+  flex: 1;
+}
+
+/* NAV BUTTONS */
+
+.nav-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+}
+
+.sidebar .nav-item {
+  cursor: pointer;
+}
+
+/* MOBILE */
+
+@media (max-width: 600px) {
+  .vehicle-form {
+    grid-template-columns: 1fr;
+  }
+
+  .vehicle-form-card {
+    padding: 22px;
+  }
+
+  .auth-card {
+    padding: 25px;
+  }
 }
