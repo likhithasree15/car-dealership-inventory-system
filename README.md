@@ -1,21 +1,38 @@
-# car-dealership-inventory-system
-A full-stack web application for managing vehicle dealership inventory with secure user authentication and CRUD operations.
+# Car Dealership Inventory Management System
+
+A full-stack Car Dealership Inventory Management System built using React, Node.js, Express, Sequelize and SQLite.
+
+The system provides secure authentication, vehicle inventory management, searching, purchasing, restocking and admin controls.
 
 ## Features
 
-- User registration and login
-- Password hashing using bcrypt
+### Authentication
+- User registration
+- User login
+- Password hashing using bcryptjs
 - JWT-based authentication
-- Protected inventory APIs
-- Add new vehicles
-- View vehicle inventory
-- Search vehicles by brand or model
-- Filter vehicles by availability
-- Update vehicle information
+- Role-based authorization
+- Admin and regular user roles
+
+### Vehicle Inventory
+- Add vehicles
+- View available vehicles
+- Search vehicles by make, model and category
+- Filter vehicles by price range
+- Update vehicle details
 - Delete vehicles
-- Inventory statistics dashboard
-- Responsive React interface
-- MySQL database with Sequelize ORM
+- Track quantity in stock
+- Purchase vehicles
+- Restock vehicles
+- Prevent purchase when quantity is zero
+
+### Dashboard
+- Total vehicles
+- Available vehicles
+- Inventory value
+- Sold vehicles
+- Search and filtering
+- Responsive user interface
 
 ## Technology Stack
 
@@ -24,7 +41,9 @@ A full-stack web application for managing vehicle dealership inventory with secu
 - React
 - Vite
 - JavaScript
-- CSS
+- HTML5
+- CSS3
+- Tailwind CSS
 
 ### Backend
 
@@ -36,27 +55,12 @@ A full-stack web application for managing vehicle dealership inventory with secu
 
 ### Database
 
-- MySQL
+- SQLite
 
-## Project Structure
+## API Endpoints
+
+### Authentication
 
 ```text
-car-dealership-inventory-system/
-│
-├── frontend/
-│   ├── src/
-│   │   ├── App.jsx
-│   │   ├── App.css
-│   │   └── main.jsx
-│   ├── package.json
-│   └── vite.config.js
-│
-├── backend/
-│   ├── server.js
-│   ├── src/
-│   ├── tests/
-│   ├── package.json
-│   └── .env
-│
-├── .gitignore
-└── README.md
+POST /api/auth/register
+POST /api/auth/login

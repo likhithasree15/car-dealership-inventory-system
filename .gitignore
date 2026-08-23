@@ -4,3 +4,5 @@ build/
 .env
 .env.*
 npm-debug.log*
+
+car_dealership.sqlite

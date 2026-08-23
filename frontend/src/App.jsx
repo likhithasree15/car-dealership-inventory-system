@@ -29,16 +29,18 @@ function App() {
   });
 
   const [vehicle, setVehicle] = useState({
-    brand: "",
-    model: "",
-    year: "",
-    price: "",
-    mileage: "",
-    fuel: "Petrol",
-    transmission: "Automatic",
-    color: "",
-    status: "Available",
-  });
+  brand: "",
+  model: "",
+  category: "",
+  year: "",
+  price: "",
+  quantity: 1,
+  mileage: "",
+  fuel: "Petrol",
+  transmission: "Automatic",
+  color: "",
+  status: "Available",
+});
 
   const [editingId, setEditingId] = useState(null);
   const [message, setMessage] = useState("");
@@ -179,69 +181,70 @@ function App() {
   };
 
   const saveVehicle = async (e) => {
-    e.preventDefault();
-    setMessage("");
+  e.preventDefault();
+  setMessage("");
 
-    const method = editingId ? "PUT" : "POST";
+  const method = editingId ? "PUT" : "POST";
 
-    const url = editingId
-      ? `${API_URL}/vehicles/${editingId}`
-      : `${API_URL}/vehicles`;
+  const url = editingId
+    ? `${API_URL}/vehicles/${editingId}`
+    : `${API_URL}/vehicles`;
 
-    try {
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          ...vehicle,
-          year: Number(vehicle.year),
-          price: Number(vehicle.price),
-          mileage: Number(vehicle.mileage),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setMessage(
-          data.message || "Unable to save vehicle"
-        );
-        return;
-      }
-
-      setMessage(
-        editingId
-          ? "Vehicle updated successfully"
-          : "Vehicle added successfully"
-      );
-
-      resetVehicleForm();
-      loadVehicles();
-    } catch {
-      setMessage("Unable to connect to server");
-    }
-  };
-
-  const editVehicle = (car) => {
-    setEditingId(car.id);
-
-    setVehicle({
-      brand: car.brand,
-      model: car.model,
-      year: car.year,
-      price: car.price,
-      mileage: car.mileage,
-      fuel: car.fuel,
-      transmission: car.transmission,
-      color: car.color,
-      status: car.status,
+  try {
+    const response = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        ...vehicle,
+        year: Number(vehicle.year),
+        price: Number(vehicle.price),
+        quantity: Number(vehicle.quantity),
+        mileage: Number(vehicle.mileage),
+      }),
     });
 
-    setPage("add");
-  };
+    const data = await response.json();
+
+    if (!response.ok) {
+      setMessage(data.message || "Unable to save vehicle");
+      return;
+    }
+
+    setMessage(
+      editingId
+        ? "Vehicle updated successfully"
+        : "Vehicle added successfully"
+    );
+
+    resetVehicleForm();
+    loadVehicles();
+  } catch {
+    setMessage("Unable to connect to server");
+  }
+};
+
+  const editVehicle = (car) => {
+  setEditingId(car.id);
+
+  setVehicle({
+    brand: car.brand || "",
+    model: car.model || "",
+    category: car.category || "",
+    year: car.year || "",
+    price: car.price || "",
+    quantity: car.quantity ?? 0,
+    mileage: car.mileage || "",
+    fuel: car.fuel || "Petrol",
+    transmission: car.transmission || "Automatic",
+    color: car.color || "",
+    status: car.status || "Available",
+  });
+
+  setPage("add");
+};
 
   const deleteVehicle = async (id) => {
     if (!window.confirm("Delete this vehicle?")) {
@@ -274,21 +277,23 @@ function App() {
   };
 
   const resetVehicleForm = () => {
-    setVehicle({
-      brand: "",
-      model: "",
-      year: "",
-      price: "",
-      mileage: "",
-      fuel: "Petrol",
-      transmission: "Automatic",
-      color: "",
-      status: "Available",
-    });
+  setVehicle({
+    brand: "",
+    model: "",
+    category: "",
+    year: "",
+    price: "",
+    quantity: 1,
+    mileage: "",
+    fuel: "Petrol",
+    transmission: "Automatic",
+    color: "",
+    status: "Available",
+  });
 
-    setEditingId(null);
-    setPage("dashboard");
-  };
+  setEditingId(null);
+  setPage("dashboard");
+};
 
   /* ---------------- STATISTICS ---------------- */
 

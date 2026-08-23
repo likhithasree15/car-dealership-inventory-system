@@ -2,8 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const mysql = require("mysql2/promise");
-const { Sequelize, DataTypes } = require("sequelize");
+const { Sequelize, DataTypes, Op } = require("sequelize");
 require("dotenv").config();
 
 const app = express();
@@ -11,169 +10,193 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const DB_NAME = process.env.DB_NAME || "car_dealership";
-const DB_USER = process.env.DB_USER || "root";
-const DB_PASSWORD = process.env.DB_PASSWORD || "";
-const DB_HOST = process.env.DB_HOST || "localhost";
-const JWT_SECRET =
-  process.env.JWT_SECRET || "car_dealership_secret_key";
+const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || "car_dealership_secret_key";
 
-/* CREATE DATABASE AUTOMATICALLY */
-async function createDatabase() {
-  const connection = await mysql.createConnection({
-    host: DB_HOST,
-    user: DB_USER,
-    password: DB_PASSWORD
-  });
+// SQLite database
+const sequelize = new Sequelize({
+  dialect: "sqlite",
+  storage: "car_dealership.sqlite",
+  logging: false,
+});
 
-  await connection.query(
-    `CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\``
-  );
+// =========================
+// MODELS
+// =========================
 
-  await connection.end();
-
-  console.log(`Database "${DB_NAME}" is ready`);
-}
-
-/* SEQUELIZE */
-const sequelize = new Sequelize(
-  DB_NAME,
-  DB_USER,
-  DB_PASSWORD,
-  {
-    host: DB_HOST,
-    dialect: "mysql",
-    logging: false
-  }
-);
-
-/* USER MODEL */
 const User = sequelize.define("User", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+
   name: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: false,
   },
 
   email: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true
+    unique: true,
+    validate: {
+      isEmail: true,
+    },
   },
 
   password: {
     type: DataTypes.STRING,
-    allowNull: false
-  }
+    allowNull: false,
+  },
+
+  role: {
+    type: DataTypes.ENUM("user", "admin"),
+    defaultValue: "user",
+  },
 });
 
-/* VEHICLE MODEL */
 const Vehicle = sequelize.define("Vehicle", {
-  brand: {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+
+  make: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: false,
   },
 
   model: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: false,
+  },
+
+  category: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+
+  price: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+    validate: {
+      min: 0,
+    },
+  },
+
+  quantity: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 1,
+    validate: {
+      min: 0,
+    },
   },
 
   year: {
     type: DataTypes.INTEGER,
-    allowNull: false
-  },
-
-  price: {
-    type: DataTypes.DECIMAL(12, 2),
-    allowNull: false
+    allowNull: true,
   },
 
   mileage: {
     type: DataTypes.INTEGER,
-    allowNull: false
+    allowNull: true,
   },
 
   fuel: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: true,
   },
 
   transmission: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: true,
   },
 
   color: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: true,
   },
-
-  status: {
-    type: DataTypes.STRING,
-    defaultValue: "Available"
-  }
 });
 
-/* AUTHENTICATION */
-function authenticate(req, res, next) {
-  const authorization = req.headers.authorization;
+// =========================
+// AUTH MIDDLEWARE
+// =========================
 
-  if (!authorization) {
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
     return res.status(401).json({
-      message: "Authentication required"
+      message: "Authentication token required",
     });
   }
 
-  const token = authorization.split(" ")[1];
+  const token = authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({
+      message: "Invalid authorization format",
+    });
+  }
 
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    req.user = decoded;
+
     next();
-  } catch {
+  } catch (error) {
     return res.status(401).json({
-      message: "Invalid or expired token"
+      message: "Invalid or expired token",
     });
   }
 }
 
-/* HOME */
-app.get("/", (req, res) => {
-  res.json({
-    message: "Car Dealership Inventory API",
-    status: "running"
-  });
-});
+function requireAdmin(req, res, next) {
+  if (!req.user || req.user.role !== "admin") {
+    return res.status(403).json({
+      message: "Admin access required",
+    });
+  }
 
-/* REGISTER */
+  next();
+}
+
+// =========================
+// AUTH APIs
+// =========================
+
+// REGISTER
 app.post("/api/auth/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({
-        message: "All fields are required"
+        message: "Name, email and password are required",
       });
     }
 
     const existingUser = await User.findOne({
-      where: { email }
+      where: { email },
     });
 
     if (existingUser) {
       return res.status(409).json({
-        message: "Email already registered"
+        message: "User already exists",
       });
     }
 
-    const hashedPassword = await bcrypt.hash(
-      password,
-      10
-    );
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
       name,
       email,
-      password: hashedPassword
+      password: hashedPassword,
+      role: "user",
     });
 
     res.status(201).json({
@@ -181,51 +204,60 @@ app.post("/api/auth/register", async (req, res) => {
       user: {
         id: user.id,
         name: user.name,
-        email: user.email
-      }
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (error) {
+    console.error(error);
+
     res.status(500).json({
-      message: error.message
+      message: "Registration failed",
     });
   }
 });
 
-/* LOGIN */
+// LOGIN
 app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Email and password are required",
+      });
+    }
+
     const user = await User.findOne({
-      where: { email }
+      where: { email },
     });
 
     if (!user) {
       return res.status(401).json({
-        message: "Invalid email or password"
+        message: "Invalid email or password",
       });
     }
 
-    const validPassword = await bcrypt.compare(
+    const passwordMatch = await bcrypt.compare(
       password,
       user.password
     );
 
-    if (!validPassword) {
+    if (!passwordMatch) {
       return res.status(401).json({
-        message: "Invalid email or password"
+        message: "Invalid email or password",
       });
     }
 
     const token = jwt.sign(
       {
         id: user.id,
-        name: user.name,
-        email: user.email
+        email: user.email,
+        role: user.role,
       },
       JWT_SECRET,
       {
-        expiresIn: "1d"
+        expiresIn: "1d",
       }
     );
 
@@ -235,165 +267,397 @@ app.post("/api/auth/login", async (req, res) => {
       user: {
         id: user.id,
         name: user.name,
-        email: user.email
-      }
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (error) {
+    console.error(error);
+
     res.status(500).json({
-      message: error.message
+      message: "Login failed",
     });
   }
 });
 
-/* GET VEHICLES */
+// =========================
+// VEHICLE APIs
+// =========================
+
+// GET ALL AVAILABLE VEHICLES
+app.get("/api/vehicles", authenticateToken, async (req, res) => {
+  try {
+    const vehicles = await Vehicle.findAll({
+      where: {
+        quantity: {
+          [Op.gt]: 0,
+        },
+      },
+      order: [["createdAt", "DESC"]],
+    });
+
+    res.json(vehicles);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Failed to fetch vehicles",
+    });
+  }
+});
+
+// SEARCH VEHICLES
 app.get(
-  "/api/vehicles",
-  authenticate,
+  "/api/vehicles/search",
+  authenticateToken,
   async (req, res) => {
     try {
+      const {
+        make,
+        model,
+        category,
+        minPrice,
+        maxPrice,
+      } = req.query;
+
+      const where = {
+        quantity: {
+          [Op.gt]: 0,
+        },
+      };
+
+      if (make) {
+        where.make = {
+          [Op.like]: `%${make}%`,
+        };
+      }
+
+      if (model) {
+        where.model = {
+          [Op.like]: `%${model}%`,
+        };
+      }
+
+      if (category) {
+        where.category = category;
+      }
+
+      if (minPrice || maxPrice) {
+        where.price = {};
+
+        if (minPrice) {
+          where.price[Op.gte] = Number(minPrice);
+        }
+
+        if (maxPrice) {
+          where.price[Op.lte] = Number(maxPrice);
+        }
+      }
+
       const vehicles = await Vehicle.findAll({
-        order: [["createdAt", "DESC"]]
+        where,
+        order: [["createdAt", "DESC"]],
       });
 
       res.json(vehicles);
     } catch (error) {
+      console.error(error);
+
       res.status(500).json({
-        message: error.message
+        message: "Vehicle search failed",
       });
     }
   }
 );
 
-/* GET VEHICLE */
-app.get(
-  "/api/vehicles/:id",
-  authenticate,
+// ADD VEHICLE
+app.post(
+  "/api/vehicles",
+  authenticateToken,
+  requireAdmin,
   async (req, res) => {
     try {
-      const vehicle = await Vehicle.findByPk(
-        req.params.id
-      );
+      const {
+        make,
+        model,
+        category,
+        price,
+        quantity,
+        year,
+        mileage,
+        fuel,
+        transmission,
+        color,
+      } = req.body;
 
-      if (!vehicle) {
-        return res.status(404).json({
-          message: "Vehicle not found"
+      if (
+        !make ||
+        !model ||
+        !category ||
+        price === undefined ||
+        quantity === undefined
+      ) {
+        return res.status(400).json({
+          message:
+            "Make, model, category, price and quantity are required",
         });
       }
 
-      res.json(vehicle);
-    } catch (error) {
-      res.status(500).json({
-        message: error.message
-      });
-    }
-  }
-);
+      if (Number(price) < 0 || Number(quantity) < 0) {
+        return res.status(400).json({
+          message: "Price and quantity cannot be negative",
+        });
+      }
 
-/* ADD VEHICLE */
-app.post(
-  "/api/vehicles",
-  authenticate,
-  async (req, res) => {
-    try {
-      const vehicle = await Vehicle.create(req.body);
+      const vehicle = await Vehicle.create({
+        make,
+        model,
+        category,
+        price: Number(price),
+        quantity: Number(quantity),
+        year,
+        mileage,
+        fuel,
+        transmission,
+        color,
+      });
 
       res.status(201).json({
         message: "Vehicle added successfully",
-        vehicle
+        vehicle,
       });
     } catch (error) {
-      res.status(400).json({
-        message: error.message
+      console.error(error);
+
+      res.status(500).json({
+        message: "Failed to add vehicle",
       });
     }
   }
 );
 
-/* UPDATE VEHICLE */
+// UPDATE VEHICLE
 app.put(
   "/api/vehicles/:id",
-  authenticate,
+  authenticateToken,
+  requireAdmin,
   async (req, res) => {
     try {
-      const vehicle = await Vehicle.findByPk(
-        req.params.id
-      );
+      const vehicle = await Vehicle.findByPk(req.params.id);
 
       if (!vehicle) {
         return res.status(404).json({
-          message: "Vehicle not found"
+          message: "Vehicle not found",
         });
       }
 
-      await vehicle.update(req.body);
+      const {
+        make,
+        model,
+        category,
+        price,
+        quantity,
+        year,
+        mileage,
+        fuel,
+        transmission,
+        color,
+      } = req.body;
+
+      await vehicle.update({
+        make: make ?? vehicle.make,
+        model: model ?? vehicle.model,
+        category: category ?? vehicle.category,
+        price:
+          price !== undefined
+            ? Number(price)
+            : vehicle.price,
+        quantity:
+          quantity !== undefined
+            ? Number(quantity)
+            : vehicle.quantity,
+        year: year ?? vehicle.year,
+        mileage: mileage ?? vehicle.mileage,
+        fuel: fuel ?? vehicle.fuel,
+        transmission:
+          transmission ?? vehicle.transmission,
+        color: color ?? vehicle.color,
+      });
 
       res.json({
         message: "Vehicle updated successfully",
-        vehicle
+        vehicle,
       });
     } catch (error) {
-      res.status(400).json({
-        message: error.message
+      console.error(error);
+
+      res.status(500).json({
+        message: "Failed to update vehicle",
       });
     }
   }
 );
 
-/* DELETE VEHICLE */
+// DELETE VEHICLE - ADMIN ONLY
 app.delete(
   "/api/vehicles/:id",
-  authenticate,
+  authenticateToken,
+  requireAdmin,
   async (req, res) => {
     try {
-      const vehicle = await Vehicle.findByPk(
-        req.params.id
-      );
+      const vehicle = await Vehicle.findByPk(req.params.id);
 
       if (!vehicle) {
         return res.status(404).json({
-          message: "Vehicle not found"
+          message: "Vehicle not found",
         });
       }
 
       await vehicle.destroy();
 
       res.json({
-        message: "Vehicle deleted successfully"
+        message: "Vehicle deleted successfully",
       });
     } catch (error) {
+      console.error(error);
+
       res.status(500).json({
-        message: error.message
+        message: "Failed to delete vehicle",
       });
     }
   }
 );
 
-/* SERVER */
+// =========================
+// PURCHASE
+// =========================
+
+app.post(
+  "/api/vehicles/:id/purchase",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const vehicle = await Vehicle.findByPk(req.params.id);
+
+      if (!vehicle) {
+        return res.status(404).json({
+          message: "Vehicle not found",
+        });
+      }
+
+      if (vehicle.quantity <= 0) {
+        return res.status(400).json({
+          message: "Vehicle is out of stock",
+        });
+      }
+
+      vehicle.quantity -= 1;
+
+      await vehicle.save();
+
+      res.json({
+        message: "Vehicle purchased successfully",
+        vehicle,
+      });
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        message: "Purchase failed",
+      });
+    }
+  }
+);
+
+// =========================
+// RESTOCK - ADMIN ONLY
+// =========================
+
+app.post(
+  "/api/vehicles/:id/restock",
+  authenticateToken,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const { quantity } = req.body;
+
+      if (
+        quantity === undefined ||
+        Number(quantity) <= 0
+      ) {
+        return res.status(400).json({
+          message: "Restock quantity must be greater than zero",
+        });
+      }
+
+      const vehicle = await Vehicle.findByPk(req.params.id);
+
+      if (!vehicle) {
+        return res.status(404).json({
+          message: "Vehicle not found",
+        });
+      }
+
+      vehicle.quantity += Number(quantity);
+
+      await vehicle.save();
+
+      res.json({
+        message: "Vehicle restocked successfully",
+        vehicle,
+      });
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        message: "Restock failed",
+      });
+    }
+  }
+);
+
+// =========================
+// HEALTH CHECK
+// =========================
+
+app.get("/", (req, res) => {
+  res.json({
+    message: "Car Dealership Inventory API is running",
+  });
+});
+
+// =========================
+// DATABASE + SERVER
+// =========================
+
 async function startServer() {
   try {
-    await createDatabase();
-
     await sequelize.authenticate();
 
-    console.log("MySQL connection established");
+    console.log("Database connected successfully");
 
     await sequelize.sync();
 
     console.log("Database tables synchronized");
 
-    app.listen(3000, () => {
+    app.listen(PORT, () => {
       console.log(
-        "Server running on http://localhost:3000"
+        `Server running on http://localhost:${PORT}`
       );
     });
   } catch (error) {
     console.error(
-      "Server startup failed:",
-      error.message
+      "Unable to start server:",
+      error
     );
   }
 }
 
 startServer();
 
-module.exports = app;
+module.exports = {
+  app,
+  sequelize,
+  User,
+  Vehicle,
+};

@@ -1,15 +1,49 @@
-import { registerUser } from "../src/auth";
+const request = require("supertest");
+const { app, sequelize, User } = require("../server");
 
-describe("User Registration", () => {
-  it("should register a new user successfully", () => {
-    const user = registerUser(
-      "Likhitha",
-      "likhitha@example.com",
-      "password123"
-    );
+describe("Authentication API", () => {
+  beforeAll(async () => {
+    await sequelize.sync({ force: true });
+  });
 
-    expect(user.name).toBe("Likhitha");
-    expect(user.email).toBe("likhitha@example.com");
-    expect(user.password).toBe("password123");
+  afterAll(async () => {
+    await sequelize.close();
+  });
+
+  test("should register a new user", async () => {
+    const response = await request(app)
+      .post("/api/auth/register")
+      .send({
+        name: "Likhitha",
+        email: "likhitha@example.com",
+        password: "password123",
+      });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.body.user.name).toBe("Likhitha");
+    expect(response.body.user.email).toBe("likhitha@example.com");
+  });
+
+  test("should login an existing user", async () => {
+    const response = await request(app)
+      .post("/api/auth/login")
+      .send({
+        email: "likhitha@example.com",
+        password: "password123",
+      });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.token).toBeDefined();
+  });
+
+  test("should reject invalid login", async () => {
+    const response = await request(app)
+      .post("/api/auth/login")
+      .send({
+        email: "likhitha@example.com",
+        password: "wrongpassword",
+      });
+
+    expect(response.statusCode).toBe(401);
   });
 });
