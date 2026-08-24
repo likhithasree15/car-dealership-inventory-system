@@ -17,7 +17,6 @@ ChatGPT
 This project was developed with assistance from ChatGPT for:
 
 
-
 \- Backend API design and implementation
 
 \- User registration and login
@@ -43,10 +42,6 @@ This project was developed with assistance from ChatGPT for:
 \- Jest and Supertest testing
 
 \- Debugging backend and frontend issues
-
-\- Git and GitHub workflow
-
-\- README documentation
 
 
 
