@@ -50,17 +50,3 @@ This project was developed with assistance from ChatGPT for:
 
 
 
-\## Public Chat Links
-
-
-
-The development conversations used for this project can be provided through ChatGPT public share links.
-
-
-
-Add the actual public ChatGPT conversation links below:
-
-
-
-\- ChatGPT development conversation: PASTE\_PUBLIC\_LINK\_HERE
-
